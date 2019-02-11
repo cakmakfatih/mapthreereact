@@ -6,6 +6,7 @@ import Buildings from './../../Archive/Buildings.json';
 import Units from './../../Archive/Units.json';
 import Fixtures from './../../Archive/Fixtures.json';
 import Levels from './../../Archive/Levels.json';
+import Points from './../../Archive/Points.json';
 
 
 export default class Builder {
@@ -34,15 +35,28 @@ export default class Builder {
                 'urlTemplate' : 'https://cartodb-basemaps-{s}.global.ssl.fastly.net/light_all/{z}/{x}/{y}.png',
                 'subdomains'  : ['a','b','c','d']
             }),
-            /*
             layers: [
+                /*
                 new maptalks.VectorLayer('line', {
                     enableAltitude: true,
                     forceRenderOnMoving: true,
                     forceRenderOnRotating : true
+                }),
+                new maptalks.VectorLayer('points', {
+                    forceRenderOnMoving: true,
+                    forceRenderOnRotating : true
                 })
+                new maptalks.VectorLayer('buildings', {
+                    enableAltitude: true,
+                    forceRenderOnMoving: true,
+                    forceRenderOnRotating : true,
+                    drawAltitude : {
+                        lineWidth: 0,
+                        polygonFill : '#dddddd',
+                    }
+                }),
+                */
             ]
-            */
         });
 
         let threeLayer = new ThreeLayer('t', {
@@ -52,22 +66,49 @@ export default class Builder {
 
         let t = this;
         Levels.features.forEach((i: any) => this.levels[i.properties.LEVEL_ID] = i);
-        /* line
+       /*
         Units.features.forEach((f: any) => {
             if(t.levels[f.properties.LEVEL_ID].properties.ORDINAL === t.activeLevel) {
                 f.geometry.coordinates.forEach((j: any) => {
                     let g = {...f, geometry: {...f.geometry, type: "Polygon", coordinates: j}, properties: {...f.properties, type: "Polygon"}};
 
-                    var l = new maptalks.LineString(maptalks.GeoJSON.toGeometry(g)._coordinates, {
+                    new maptalks.LineString(maptalks.GeoJSON.toGeometry(g)._coordinates, {
                         properties: {
-                            'altitude': 2
+                            'altitude': 2,
+                        },
+                        symbol: {
+                            'lineWidth': 0.3
                         }
                     }).addTo(this.map.getLayer('line'));
                 });
             }
         });
-        */
         
+        Points.features.forEach((f: any) => {
+            if(t.levels[f.properties.LEVEL_ID].properties.ORDINAL === t.activeLevel) {
+                console.log(f.properties);
+                maptalks.GeoJSON.toGeometry(f).addTo(this.map.getLayer('points'));
+            }
+        });
+        */
+
+        // fake 3d walls
+        /*
+        Buildings.features.forEach((f: any) => {
+            f.geometry.coordinates.forEach((j: any) => {
+                let g = {...f, geometry: {...f.geometry, type: "Polygon", coordinates: j}, properties: {...f.properties, type: "Polygon"}};
+                new maptalks.LineString(maptalks.GeoJSON.toGeometry(g).getCoordinates()[0], {
+                    symbol: {
+                        'lineWidth': 8,
+                        'lineColor': '#ffffff',
+                    },
+                    properties: {
+                        'altitude': f.properties.HEIGHT,
+                    }
+                }).addTo(this.map.getLayer('buildings'));
+            });
+        });
+        */
         threeLayer.prepareToDraw = function (gl, scene, camera) {
             let light = new THREE.DirectionalLight(0xffffff, 1.5);
             light.position.set(0, 7, 7).normalize();
@@ -75,7 +116,7 @@ export default class Builder {
 
             Venue.features.forEach((f: any) => {
                 f.geometry.coordinates.forEach((j: any) => {
-                    let color = 0xffffff;
+                    let color = 0x303030;
                     let m = new THREE.MeshPhongMaterial({color: color});
                     let g = {...f, geometry: {...f.geometry, type: "Polygon", coordinates: j}, properties: {...f.properties, type: "Polygon"}};
                     let mesh = this.toExtrudeMesh(maptalks.GeoJSON.toGeometry(g), 1, m);
@@ -89,7 +130,6 @@ export default class Builder {
             });
             
             
-
             Buildings.features.forEach((f: any) => {
                 f.geometry.coordinates.forEach((j: any) => {
                     let color = 0x607d8b;
@@ -108,8 +148,6 @@ export default class Builder {
                     }
                 });
             });
-
-            
             
             Units.features.forEach((f: any) => {
                 if(t.levels[f.properties.LEVEL_ID].properties.ORDINAL === t.activeLevel) {
@@ -163,6 +201,9 @@ export default class Builder {
 
         this.map.addLayer(threeLayer);
         //this.map.getLayer('line').bringToFront();
+        //this.map.getLayer('points').bringToFront();
+        //this.map.getLayer('line').bringToFront();
+        //this.map.getLayer('buildings').bringToFront();
     }
 
     randomColor = (): string => {

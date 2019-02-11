@@ -96,7 +96,10 @@ export default class Builder {
                     let m = new THREE.MeshPhongMaterial({color: color});
                     let sM = new THREE.MeshPhongMaterial({ color: 0x78909c });
                     let g = {...f, geometry: {...f.geometry, type: "Polygon", coordinates: j}, properties: {...f.properties, type: "Polygon"}};
-                    let mesh = this.toExtrudeMesh(maptalks.GeoJSON.toGeometry(g), f.properties.HEIGHT + 2, [m, sM]);
+
+                    let geo = maptalks.GeoJSON.toGeometry(g);
+                    
+                    let mesh = this.toExtrudeMesh(geo, f.properties.HEIGHT + 2, [m, sM]);
 
                     if (Array.isArray(mesh)) {
                         scene.add.apply(scene, mesh);

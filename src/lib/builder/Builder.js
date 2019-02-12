@@ -8,22 +8,26 @@ import Fixtures from './../../Archive/Fixtures.json';
 import Levels from './../../Archive/Levels.json';
 import Points from './../../Archive/Points.json';
 
-
 export default class Builder {
     container: HTMLDivElement;
     map: maptalks.Map;
     activeLevel: number;
     levels: any;
     unitColors: any;
+    layers: any[];
+    coords: number[];
+    lastSelectedObject: any;
 
     constructor(container: HTMLDivElement) {
         this.activeLevel = 0;
+        this.lastSelectedObject = {};
+        this.layers = [];
         this.levels = {};
         this.unitColors = {};
         this.container = container;
+        this.coords = Venue.features[0].properties.DISPLAY_XY.coordinates;
         this.map = new maptalks.Map(container.id, { 
-            center: [29.07106688973935,
-                41.00360414208543],
+            center: [this.coords[0], this.coords[1]],
             zoom: 18,
             pitch : 60,
             bearing : -60,
@@ -36,16 +40,16 @@ export default class Builder {
                 'subdomains'  : ['a','b','c','d']
             }),
             layers: [
-                /*
+                new maptalks.VectorLayer('points', {
+                    forceRenderOnMoving: true,
+                    forceRenderOnRotating : true
+                }),
                 new maptalks.VectorLayer('line', {
                     enableAltitude: true,
                     forceRenderOnMoving: true,
                     forceRenderOnRotating : true
                 }),
-                new maptalks.VectorLayer('points', {
-                    forceRenderOnMoving: true,
-                    forceRenderOnRotating : true
-                })
+                /*
                 new maptalks.VectorLayer('buildings', {
                     enableAltitude: true,
                     forceRenderOnMoving: true,
@@ -66,12 +70,11 @@ export default class Builder {
 
         let t = this;
         Levels.features.forEach((i: any) => this.levels[i.properties.LEVEL_ID] = i);
-       /*
+        /*
         Units.features.forEach((f: any) => {
             if(t.levels[f.properties.LEVEL_ID].properties.ORDINAL === t.activeLevel) {
                 f.geometry.coordinates.forEach((j: any) => {
                     let g = {...f, geometry: {...f.geometry, type: "Polygon", coordinates: j}, properties: {...f.properties, type: "Polygon"}};
-
                     new maptalks.LineString(maptalks.GeoJSON.toGeometry(g)._coordinates, {
                         properties: {
                             'altitude': 2,
@@ -83,14 +86,39 @@ export default class Builder {
                 });
             }
         });
-        
+        */
         Points.features.forEach((f: any) => {
             if(t.levels[f.properties.LEVEL_ID].properties.ORDINAL === t.activeLevel) {
-                console.log(f.properties);
-                maptalks.GeoJSON.toGeometry(f).addTo(this.map.getLayer('points'));
+                let coords = maptalks.GeoJSON.toGeometry(f).getCoordinates();
+                new maptalks.Marker([coords.x, coords.y], {
+                    "properties": {
+                        name: f.properties.CATEGORY
+                    },
+                    "symbol": {
+                        'textFaceName' : 'sans-serif',
+                        'textName' : '{name}',         
+                        'textWeight'        : 'normal',
+                        'textStyle'         : 'normal',
+                        'textSize'          : 20,
+                        'textFont'          : null, 
+                        'textFill'          : '#34495e',
+                        'textOpacity'       : 0.6,
+                        'textHaloFill'      : '#fff',
+                        'textHaloRadius'    : 5,
+                        'textWrapWidth'     : null,
+                        'textWrapCharacter' : '\n',
+                        'textLineSpacing'   : 0,
+
+                        'textDx'            : 0,
+                        'textDy'            : 0,
+                        'textHorizontalAlignment' : 'middle', 
+                        'textVerticalAlignment'   : 'middle',   
+                        'textAlign'               : 'center'
+                    }
+                }).addTo(this.map.getLayer("points"));
             }
         });
-        */
+        
 
         // fake 3d walls
         /*
@@ -113,6 +141,7 @@ export default class Builder {
             let light = new THREE.DirectionalLight(0xffffff, 1.5);
             light.position.set(0, 7, 7).normalize();
             scene.add(light);
+            t.viewLoop(this._renderer, scene);
 
             Venue.features.forEach((f: any) => {
                 f.geometry.coordinates.forEach((j: any) => {
@@ -128,8 +157,7 @@ export default class Builder {
                     }
                 });
             });
-            
-            
+            /*
             Buildings.features.forEach((f: any) => {
                 f.geometry.coordinates.forEach((j: any) => {
                     let color = 0x607d8b;
@@ -148,12 +176,12 @@ export default class Builder {
                     }
                 });
             });
-            
+            */
             Units.features.forEach((f: any) => {
                 if(t.levels[f.properties.LEVEL_ID].properties.ORDINAL === t.activeLevel) {
                     f.geometry.coordinates.forEach((j: any) => {
                         let g = {...f, geometry: {...f.geometry, type: "Polygon", coordinates: j}, properties: {...f.properties, type: "Polygon"}};
-                    
+                        
                         if(typeof t.unitColors[f.properties.CATEGORY] === "undefined") {
                             let red = t.randomColor();
                             let green = t.randomColor();
@@ -164,7 +192,9 @@ export default class Builder {
                         
                         let m = new THREE.MeshPhongMaterial({color: t.unitColors[f.properties.CATEGORY]});
                         let geo = maptalks.GeoJSON.toGeometry(g);
+
                         let mesh = this.toExtrudeMesh(geo, 2, m);
+                        t.addLine(geo.getCoordinates(), scene, this, mesh.position.z/2 + mesh.geometry.parameters.options.depth);
 
                         if (Array.isArray(mesh)) {
                             scene.add.apply(scene, mesh);
@@ -174,7 +204,7 @@ export default class Builder {
                     });
                 }
             });
-
+            
             Fixtures.features.forEach((f: any) => {
                 if(t.levels[f.properties.LEVEL_ID].properties.ORDINAL === t.activeLevel) {
                     f.geometry.coordinates.forEach((j: any) => {
@@ -200,14 +230,91 @@ export default class Builder {
         
 
         this.map.addLayer(threeLayer);
-        //this.map.getLayer('line').bringToFront();
-        //this.map.getLayer('points').bringToFront();
-        //this.map.getLayer('line').bringToFront();
+        this.layers.push(threeLayer);
+        this.map.getLayer('line').bringToFront();
+        this.map.getLayer('points').bringToFront();
         //this.map.getLayer('buildings').bringToFront();
+    }
+
+    addLine = (coords, scene, t, z) => {
+        let mat = new THREE.MeshPhongMaterial({
+            color: 0x303030,
+            depthTest: false
+        });
+        
+
+        coords.forEach((i: any) => {
+            let path = new THREE.Path();
+
+            let startPoint = i[0];
+            let startPointE = t.coordinateToVector3(startPoint, z);
+
+            path.moveTo(startPointE.x, startPointE.y);
+            i.slice(1).forEach((k: any) => {
+                let v = t.coordinateToVector3(k);
+                path.lineTo(v.x, v.y);
+            });
+
+            let pts = path.getPoints();
+            let geometry = new THREE.BufferGeometry().setFromPoints(pts);
+            let line = new THREE.Line(geometry, mat);
+            line.position.setZ(z);
+
+            scene.add(line);
+        });
+    }
+
+    viewLoop = (renderer, scene) => {
+        requestAnimationFrame(() => this.viewLoop(renderer));
+        this.update(renderer);
+        this.render(renderer);
+    }
+
+    update = (renderer) => {
+
+    }
+
+    render = (renderer, scene) => {
+        renderer.renderScene(scene);
     }
 
     randomColor = (): string => {
         let colors = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "a", "b", "c", "d", "e", "f"];
         return colors[Math.floor(Math.random() * colors.length)] + colors[Math.floor(Math.random() * colors.length)];
+    }
+
+    handleClick = (e) => {
+        e.preventDefault();
+        var raycaster = new THREE.Raycaster();
+        var mouse = new THREE.Vector2();
+
+        if(typeof this.lastSelectedObject.id !== "undefined") {
+            if(!this.lastSelectedObject.editted) {
+                let { r, g, b } = this.lastSelectedObject.color;
+                this.lastSelectedObject.object.material.color = new THREE.Color(r, g, b);
+            }
+        }
+
+        mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+        var objects = [];
+
+        this.layers[0].getScene().children.forEach(child => {
+            if (child instanceof THREE.Mesh) {
+                objects.push(child);
+            }
+        })
+        raycaster.setFromCamera(mouse, this.layers[0].getCamera());
+        var intersects = raycaster.intersectObjects(objects);
+
+        if (intersects.length > 0) {
+            this.lastSelectedObject = {
+                id: intersects[0].object.id,
+                color: intersects[0].object.material.color,
+                object: intersects[0].object,
+                editted: false
+            };
+            intersects[0].object.material.color = new THREE.Color(0xc2185b);
+        }
     }
 }

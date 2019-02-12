@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 import Layout from './components/Layout';
 import Builder from './builder/Builder';
+import FileService from './services/FileService';
 import type { EditorState } from './types/EditorState';
 
 export default class Editor extends Component<{}, EditorState> {
@@ -12,8 +13,18 @@ export default class Editor extends Component<{}, EditorState> {
         };
     }
 
+    componentWillMount = async () => {
+        let fileService: FileService = await new FileService();
+
+        await this.setState({
+            fileService
+        });
+    }
+
     componentDidMount = () => {
-        new Builder(this.refs["3d-view-container"]);
+        let b = new Builder(this.refs["3d-view-container"]);
+
+        document.addEventListener("click", b.handleClick, false);
     }
 
     renderAside = () => {
@@ -50,7 +61,6 @@ export default class Editor extends Component<{}, EditorState> {
     render = () => {
         return (
             <Layout flexDirection="row">
-                {this.renderAside()}
                 <div ref="3d-view-container" id="geo3d-view-container" />
             </Layout>
         );

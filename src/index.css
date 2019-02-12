@@ -4,8 +4,8 @@
     font-family: Roboto, Helvetica, Arial, sans-serif;
 }
 :root {
-    --primary-color: #2196f3;
-    --accent-color: #448aff;
+    --primary-color: #c2185b;
+    --accent-color: #ff4081;
     --text-color: #303030;
 }
 body {
@@ -188,4 +188,114 @@ label.btn-default:active, button.btn-default:active {
 }
 .single-color:active {
   opacity: .4;
+}
+.edit-panel {
+    position: fixed;
+    left: 15px;
+    top: 15px;
+    width: 350px;
+    background-color: #fff;
+    z-index: 10;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, .4);
+    display: flex;
+    flex-direction: column;
+    padding: 15px;
+    justify-content: space-between;
+}
+.edit-panel > section > button {
+    margin-top: 10px;
+}
+.edit-panel > h3 {
+    font-weight: 500;
+    margin: 0;
+    font-size: 1.4rem;
+}
+.edit-panel > section {
+    display: flex;
+    flex-direction: column;
+}
+.pane-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px;
+}
+.pane-header-i {
+    font-size: 1.5rem;
+    opacity: .4;
+    transition: opacity .2s;
+    cursor: pointer;
+    padding: 5px;
+}
+.pane-header-i:hover {
+    opacity: .7;
+}
+.pane-header-i:active {
+    opacity: 1.0;
+}
+.pane-h-text > h3 {
+    font-size: 1.35rem;
+    font-weight: 500;
+    margin: 0;
+}
+.pane-h-left {
+    display: flex;
+    align-items: center;
+}
+.pane-h-text {
+    display: flex;
+    flex-direction: column;
+}
+.secondary-sub {
+    font-size: 11pt;
+    color: #616161;
+    padding-left: 7pt;
+}
+.pane-subtitle {
+    font-size: 13pt;
+    margin: 0;
+    margin-top: 5px;
+    font-weight: 400;
+    padding: 5px;
+}
+.row-g > .inp-default {
+    margin: 3px;
+    flex: 1;
+    text-align: center;
+    max-width: 40px;
+    height: 30px;
+    padding: 0px;
+}
+.row-g {
+    display: flex;
+    align-items: center;
+}
+.btn-ico > i {
+    margin: 0;
+}
+.btn-ico {
+    border-width: 1px;
+    border-radius: 50%;
+}
+.divider {
+    height: 1px;
+    background-color: #ddd;
+    margin: 15px 0px;
+}
+.panel-cb {
+    display: flex;
+    align-items: center;
+}
+.panel-cb > input {
+    margin-right: 5px;
+}
+.panel-cb > span {
+    font-size: 11pt;
+}
+.cb-default {
+    -ms-transform: scale(2); /* IE */
+    -moz-transform: scale(2); /* FF */
+    -webkit-transform: scale(2); /* Safari and Chrome */
+    -o-transform: scale(2); /* Opera */
+    padding: 10px;
 }

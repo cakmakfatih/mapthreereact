@@ -17,6 +17,7 @@ export default class Builder {
     layers: any[];
     coords: number[];
     lastSelectedObject: any;
+    selectedObject: any;
 
     constructor(container: HTMLDivElement) {
         this.activeLevel = 0;
@@ -40,15 +41,12 @@ export default class Builder {
                 'subdomains'  : ['a','b','c','d']
             }),
             layers: [
+                /*
                 new maptalks.VectorLayer('points', {
                     forceRenderOnMoving: true,
                     forceRenderOnRotating : true
                 }),
-                new maptalks.VectorLayer('line', {
-                    enableAltitude: true,
-                    forceRenderOnMoving: true,
-                    forceRenderOnRotating : true
-                }),
+                */
                 /*
                 new maptalks.VectorLayer('buildings', {
                     enableAltitude: true,
@@ -87,6 +85,7 @@ export default class Builder {
             }
         });
         */
+       /*
         Points.features.forEach((f: any) => {
             if(t.levels[f.properties.LEVEL_ID].properties.ORDINAL === t.activeLevel) {
                 let coords = maptalks.GeoJSON.toGeometry(f).getCoordinates();
@@ -119,7 +118,7 @@ export default class Builder {
             }
         });
         
-
+        */
         // fake 3d walls
         /*
         Buildings.features.forEach((f: any) => {
@@ -141,11 +140,11 @@ export default class Builder {
             let light = new THREE.DirectionalLight(0xffffff, 1.5);
             light.position.set(0, 7, 7).normalize();
             scene.add(light);
-            t.viewLoop(this._renderer, scene);
+            t.viewLoop(this._renderer);
 
             Venue.features.forEach((f: any) => {
                 f.geometry.coordinates.forEach((j: any) => {
-                    let color = 0x303030;
+                    let color = 0xffffff;
                     let m = new THREE.MeshPhongMaterial({color: color});
                     let g = {...f, geometry: {...f.geometry, type: "Polygon", coordinates: j}, properties: {...f.properties, type: "Polygon"}};
                     let mesh = this.toExtrudeMesh(maptalks.GeoJSON.toGeometry(g), 1, m);
@@ -157,17 +156,16 @@ export default class Builder {
                     }
                 });
             });
-            /*
+            
             Buildings.features.forEach((f: any) => {
                 f.geometry.coordinates.forEach((j: any) => {
                     let color = 0x607d8b;
                     let m = new THREE.MeshPhongMaterial({color: color});
-                    let sM = new THREE.MeshPhongMaterial({ color: 0x78909c });
                     let g = {...f, geometry: {...f.geometry, type: "Polygon", coordinates: j}, properties: {...f.properties, type: "Polygon"}};
 
                     let geo = maptalks.GeoJSON.toGeometry(g);
                     
-                    let mesh = this.toExtrudeMesh(geo, f.properties.HEIGHT + 2, [m, sM]);
+                    let mesh = this.toExtrudeMesh(geo, f.properties.HEIGHT + 2, m);
 
                     if (Array.isArray(mesh)) {
                         scene.add.apply(scene, mesh);
@@ -176,7 +174,7 @@ export default class Builder {
                     }
                 });
             });
-            */
+            
             Units.features.forEach((f: any) => {
                 if(t.levels[f.properties.LEVEL_ID].properties.ORDINAL === t.activeLevel) {
                     f.geometry.coordinates.forEach((j: any) => {
@@ -231,15 +229,20 @@ export default class Builder {
 
         this.map.addLayer(threeLayer);
         this.layers.push(threeLayer);
-        this.map.getLayer('line').bringToFront();
-        this.map.getLayer('points').bringToFront();
+        //this.map.getLayer('points').bringToFront();
         //this.map.getLayer('buildings').bringToFront();
+    }
+
+    changeColor = (r, g, b) => {
+        if(typeof this.selectedObject !== "undefined") {
+            let c = new THREE.Color(`rgb(${r}, ${g}, ${b})`);
+            this.selectedObject.material.color = c;
+        }
     }
 
     addLine = (coords, scene, t, z) => {
         let mat = new THREE.MeshPhongMaterial({
-            color: 0x303030,
-            depthTest: false
+            color: 0x303030
         });
         
 
@@ -258,13 +261,33 @@ export default class Builder {
             let pts = path.getPoints();
             let geometry = new THREE.BufferGeometry().setFromPoints(pts);
             let line = new THREE.Line(geometry, mat);
-            line.position.setZ(z);
+            line.position.setZ(z + 0.002);
 
             scene.add(line);
         });
     }
 
-    viewLoop = (renderer, scene) => {
+    extrudeObject = (axis: string, val: number) => {
+        if(typeof this.selectedObject !== "undefined") {
+            val = ((val/100)*3);
+            switch(axis) {
+                case "X":
+                    this.selectedObject.scale.setX(val);
+                    break;
+                case "Y":
+                    this.selectedObject.scale.setZ(val);
+                    break;
+                case "Z":
+                    this.selectedObject.scale.setY(val);
+                    break;
+                default:
+                    break;
+            }
+            this.selectedObject.updateMatrix();
+        }
+    }
+
+    viewLoop = (renderer) => {
         requestAnimationFrame(() => this.viewLoop(renderer));
         this.update(renderer);
         this.render(renderer);
@@ -274,8 +297,9 @@ export default class Builder {
 
     }
 
-    render = (renderer, scene) => {
-        renderer.renderScene(scene);
+    render = (renderer) => {
+        renderer.clear();
+        renderer.renderScene(renderer.scene, renderer.camera);
     }
 
     randomColor = (): string => {
@@ -285,36 +309,40 @@ export default class Builder {
 
     handleClick = (e) => {
         e.preventDefault();
-        var raycaster = new THREE.Raycaster();
-        var mouse = new THREE.Vector2();
+        if((e.target === document.querySelector("canvas"))) {
+            let raycaster = new THREE.Raycaster();
+            let mouse = new THREE.Vector2();
 
-        if(typeof this.lastSelectedObject.id !== "undefined") {
-            if(!this.lastSelectedObject.editted) {
-                let { r, g, b } = this.lastSelectedObject.color;
-                this.lastSelectedObject.object.material.color = new THREE.Color(r, g, b);
+            if(typeof this.lastSelectedObject.id !== "undefined") {
+                if(!this.lastSelectedObject.editted) {
+                    let { r, g, b } = this.lastSelectedObject.color;
+                    this.lastSelectedObject.object.material.color = new THREE.Color(r, g, b);
+                }
             }
-        }
 
-        mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
-        mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
-        var objects = [];
+            mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+            let objects = [];
 
-        this.layers[0].getScene().children.forEach(child => {
-            if (child instanceof THREE.Mesh) {
-                objects.push(child);
+            this.layers[0].getScene().children.forEach(child => {
+                if (child instanceof THREE.Mesh) {
+                    objects.push(child);
+                }
+            })
+            raycaster.setFromCamera(mouse, this.layers[0].getCamera());
+            let intersects = raycaster.intersectObjects(objects);
+
+            if (intersects.length > 0) {
+                this.lastSelectedObject = {
+                    id: intersects[0].object.id,
+                    color: intersects[0].object.material.color,
+                    object: intersects[0].object,
+                    editted: false
+                };
+                intersects[0].object.material.color = new THREE.Color(0xc2185b);
+                console.log(intersects[0].object);
+                this.selectedObject = intersects[0].object;
             }
-        })
-        raycaster.setFromCamera(mouse, this.layers[0].getCamera());
-        var intersects = raycaster.intersectObjects(objects);
-
-        if (intersects.length > 0) {
-            this.lastSelectedObject = {
-                id: intersects[0].object.id,
-                color: intersects[0].object.material.color,
-                object: intersects[0].object,
-                editted: false
-            };
-            intersects[0].object.material.color = new THREE.Color(0xc2185b);
         }
     }
 }

@@ -121,6 +121,12 @@ export default class Editor extends Component<{}, EditorState> {
                     </div>
                 </div>
             </section>
+            <div className="form-group">
+                <label className="secondary-sub">Current Color: </label>
+                <div ref="c-color-prev" style={{ backgroundColor: `#303030`, padding: 15 }} className="btn-default"></div>
+            </div>
+            {this.colorPalette(() => this.builder.changeColor(""))}
+
             <div className="divider" />
 
             <div className="panel-cb">
@@ -129,13 +135,13 @@ export default class Editor extends Component<{}, EditorState> {
                     Apply changes to every object in the category.
                 </label>
             </div>
-
+            
             <section>
                 <button className="btn-default">SAVE</button>
             </section>
         </div>
-    );
-
+    )
+        
     render = () => {
         return (
             <Layout flexDirection="row">
@@ -144,4 +150,10 @@ export default class Editor extends Component<{}, EditorState> {
             </Layout>
         );
     }
+
+    colorPalette = (click: Function) => (
+        <div className="form-group palette">
+          {Object.keys(Config.colorPalette).map((c: string, k: number) => <div className="sc" key={k}>{Config.colorPalette[c].map((color: string, key: number) => <div key={key} className="single-color" onClick={() => click(color)} style={{backgroundColor: `#${parseInt(color, 16).toString(16)}`}}></div>)}</div>)}
+        </div>
+    )
 }

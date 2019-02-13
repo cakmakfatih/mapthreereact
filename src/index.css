@@ -169,15 +169,20 @@ label.btn-default:active, button.btn-default:active {
 }
 .palette {
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
+  flex-wrap: wrap;
+}
+.sc {
+    display: flex;
+    flex-wrap: wrap;
 }
 .color-column {
   display: flex;
   flex-direction: column;
 }
 .single-color {
-  width: 30px;
-  height: 30px;
+  width: 20px;
+  height: 20px;
   cursor: pointer;
   margin: .5px;
   transition: opacity .2s;
@@ -269,6 +274,10 @@ label.btn-default:active, button.btn-default:active {
 .row-g {
     display: flex;
     align-items: center;
+}
+.row-c {
+    display: flex;
+    flex-wrap: wrap;
 }
 .btn-ico > i {
     margin: 0;

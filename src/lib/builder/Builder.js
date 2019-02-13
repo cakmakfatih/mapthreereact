@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import * as maptalks from 'maptalks';
 import { ThreeLayer } from 'maptalks.three';
+import Config from './../../Config.json';
 import Venue from './../../Archive/Venue.json';
 import Buildings from './../../Archive/Buildings.json';
 import Units from './../../Archive/Units.json';
@@ -22,7 +23,10 @@ export default class Builder {
         this.activeLevel = 0;
         this.selectedObject = {};
         this.layers = [];
-        this.levels = {};
+        this.levels = {
+            "Room": "#".concat(Config.colorPalette["green"][5].toString().split("x")[1]),
+            "Walkway": Config.colorPalette["green"][5]
+        };
         this.unitColors = {};
         this.container = container;
         this.coords = Venue.features[0].properties.DISPLAY_XY.coordinates;
@@ -40,6 +44,11 @@ export default class Builder {
                 'subdomains'  : ['a','b','c','d']
             }),
             layers: [
+                new maptalks.VectorLayer('lines', {
+                    forceRenderOnMoving: true,
+                    forceRenderOnRotating: true,
+                    enableAltitude: true
+                })
                 /*
                 new maptalks.VectorLayer('points', {
                     forceRenderOnMoving: true,
@@ -67,23 +76,15 @@ export default class Builder {
 
         let t = this;
         Levels.features.forEach((i: any) => this.levels[i.properties.LEVEL_ID] = i);
-        /*
+        
         Units.features.forEach((f: any) => {
             if(t.levels[f.properties.LEVEL_ID].properties.ORDINAL === t.activeLevel) {
                 f.geometry.coordinates.forEach((j: any) => {
-                    let g = {...f, geometry: {...f.geometry, type: "Polygon", coordinates: j}, properties: {...f.properties, type: "Polygon"}};
-                    new maptalks.LineString(maptalks.GeoJSON.toGeometry(g)._coordinates, {
-                        properties: {
-                            'altitude': 2,
-                        },
-                        symbol: {
-                            'lineWidth': 0.3
-                        }
-                    }).addTo(this.map.getLayer('line'));
+                    
                 });
             }
         });
-        */
+        
        /*
         Points.features.forEach((f: any) => {
             if(t.levels[f.properties.LEVEL_ID].properties.ORDINAL === t.activeLevel) {
@@ -146,6 +147,7 @@ export default class Builder {
                     let color = 0xffffff;
                     let m = new THREE.MeshPhongMaterial({color: color});
                     let g = {...f, geometry: {...f.geometry, type: "Polygon", coordinates: j}, properties: {...f.properties, type: "Polygon"}};
+                    
                     let mesh = this.toExtrudeMesh(maptalks.GeoJSON.toGeometry(g), 1, m);
 
                     if (Array.isArray(mesh)) {
@@ -177,6 +179,20 @@ export default class Builder {
             Units.features.forEach((f: any) => {
                 if(t.levels[f.properties.LEVEL_ID].properties.ORDINAL === t.activeLevel) {
                     f.geometry.coordinates.forEach((j: any) => {
+                        j.forEach((k: any) => {
+                            let coords: maptalks.Coordinate[] = [];
+                            k.forEach((q: any) => coords.push(new maptalks.Coordinate(q[0], q[1])));
+    
+                            new maptalks.LineString(coords, {
+                                properties: {
+                                    'altitude': 2,
+                                },
+                                symbol: {
+                                    'lineWidth': 0.6
+                                }
+                            }).addTo(this.map.getLayer('lines'));
+                        });
+
                         let g = {...f, geometry: {...f.geometry, type: "Polygon", coordinates: j}, properties: {...f.properties, type: "Polygon"}};
                         
                         if(typeof t.unitColors[f.properties.CATEGORY] === "undefined") {
@@ -191,7 +207,7 @@ export default class Builder {
                         let geo = maptalks.GeoJSON.toGeometry(g);
 
                         let mesh = this.toExtrudeMesh(geo, 2, m);
-                        t.addLine(geo.getCoordinates(), scene, this, mesh.position.z/2 + mesh.geometry.parameters.options.depth);
+                        //t.addLine(geo.getCoordinates(), scene, this, mesh.position.z/2 + mesh.geometry.parameters.options.depth);
 
                         if (Array.isArray(mesh)) {
                             scene.add.apply(scene, mesh);
@@ -228,7 +244,7 @@ export default class Builder {
 
         this.map.addLayer(threeLayer);
         this.layers.push(threeLayer);
-        //this.map.getLayer('points').bringToFront();
+        this.map.getLayer('lines').bringToFront();
         //this.map.getLayer('buildings').bringToFront();
     }
 

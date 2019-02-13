@@ -293,9 +293,5 @@ label.btn-default:active, button.btn-default:active {
     font-size: 11pt;
 }
 .cb-default {
-    -ms-transform: scale(2); /* IE */
-    -moz-transform: scale(2); /* FF */
-    -webkit-transform: scale(2); /* Safari and Chrome */
-    -o-transform: scale(2); /* Opera */
     padding: 10px;
 }

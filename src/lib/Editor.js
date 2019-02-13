@@ -59,7 +59,7 @@ export default class Editor extends Component<{}, EditorState> {
         </aside>
     )
 
-    slider = () => (
+    editPanel = () => (
         <div className="edit-panel">
             <section>
                 <header className="pane-header">
@@ -82,7 +82,7 @@ export default class Editor extends Component<{}, EditorState> {
                     <span className="secondary-sub">Opacity: </span>
                     <div className="row-g">
                         <input type="text" className="inp-default" placeholder="1" />
-                        <input type="range" style={{flex: 1}} min="1" max="100" onChange={(e) => this.builder.extrudeObject("Y", e.target.value)} className="slider" id="myRange" />
+                        <input type="range" style={{flex: 1}} min="0" max="100" onChange={(e) => this.builder.changeOpacity(e.target.value)} className="slider" id="myRange" />
                     </div>
                 </div>
 
@@ -92,7 +92,7 @@ export default class Editor extends Component<{}, EditorState> {
                     <span className="secondary-sub">Height: </span>
                     <div className="row-g">
                         <input type="text" className="inp-default" placeholder="1" />
-                        <input type="range" style={{flex: 1}} min="1" max="100" onChange={(e) => this.builder.extrudeObject("Y", e.target.value)} className="slider" id="myRange" />
+                        <input type="range" style={{flex: 1}} min="0" max="100" onChange={(e) => this.builder.extrudeObject("Y", e.target.value)} className="slider" id="myRange" />
                     </div>
                 </div>
                 <h3 className="pane-subtitle">Position</h3>
@@ -111,9 +111,9 @@ export default class Editor extends Component<{}, EditorState> {
                 <div className="form-group">
                     <span className="secondary-sub">Color: </span>
                     <div className="row-g">
-                        <input className="inp-default" placeholder="R" ref="pane-r" />
-                        <input className="inp-default" placeholder="G" ref="pane-g" />
-                        <input className="inp-default" placeholder="B" ref="pane-b" />
+                        <input className="inp-default" placeholder="R" ref="pane-r" onChange={() => this.builder.changeColor(this.refs['pane-r'].value, this.refs['pane-g'].value, this.refs['pane-b'].value)} />
+                        <input className="inp-default" placeholder="G" ref="pane-g" onChange={() => this.builder.changeColor(this.refs['pane-r'].value, this.refs['pane-g'].value, this.refs['pane-b'].value)} />
+                        <input className="inp-default" placeholder="B" ref="pane-b" onChange={() => this.builder.changeColor(this.refs['pane-r'].value, this.refs['pane-g'].value, this.refs['pane-b'].value)} />
                         <div style={{flex: 1}} />
                         <button className="btn-default btn-ico" onClick={() => this.builder.changeColor(this.refs['pane-r'].value, this.refs['pane-g'].value, this.refs['pane-b'].value)}>
                             <i className="fas fa-highlighter" />
@@ -139,7 +139,7 @@ export default class Editor extends Component<{}, EditorState> {
     render = () => {
         return (
             <Layout flexDirection="row">
-                {this.slider()}
+                {this.editPanel()}
                 <div ref="3d-view-container" id="geo3d-view-container" />
             </Layout>
         );

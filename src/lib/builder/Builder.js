@@ -16,12 +16,11 @@ export default class Builder {
     unitColors: any;
     layers: any[];
     coords: number[];
-    lastSelectedObject: any;
     selectedObject: any;
 
     constructor(container: HTMLDivElement) {
         this.activeLevel = 0;
-        this.lastSelectedObject = {};
+        this.selectedObject = {};
         this.layers = [];
         this.levels = {};
         this.unitColors = {};
@@ -160,7 +159,7 @@ export default class Builder {
             Buildings.features.forEach((f: any) => {
                 f.geometry.coordinates.forEach((j: any) => {
                     let color = 0x607d8b;
-                    let m = new THREE.MeshPhongMaterial({color: color});
+                    let m = new THREE.MeshPhongMaterial({color: color, transparent: true});
                     let g = {...f, geometry: {...f.geometry, type: "Polygon", coordinates: j}, properties: {...f.properties, type: "Polygon"}};
 
                     let geo = maptalks.GeoJSON.toGeometry(g);
@@ -236,8 +235,12 @@ export default class Builder {
     changeColor = (r, g, b) => {
         if(typeof this.selectedObject !== "undefined") {
             let c = new THREE.Color(`rgb(${r}, ${g}, ${b})`);
-            this.selectedObject.material.color = c;
+            this.selectedObject.object.material.color = c;
         }
+    }
+
+    changeOpacity = (o: number) => {
+        this.selectedObject.object.material.opacity = o/100;
     }
 
     addLine = (coords, scene, t, z) => {
@@ -250,7 +253,7 @@ export default class Builder {
             let path = new THREE.Path();
 
             let startPoint = i[0];
-            let startPointE = t.coordinateToVector3(startPoint, z);
+            let startPointE = t.coordinateToVector3(startPoint);
 
             path.moveTo(startPointE.x, startPointE.y);
             i.slice(1).forEach((k: any) => {
@@ -261,7 +264,7 @@ export default class Builder {
             let pts = path.getPoints();
             let geometry = new THREE.BufferGeometry().setFromPoints(pts);
             let line = new THREE.Line(geometry, mat);
-            line.position.setZ(z + 0.002);
+            line.position.setZ(z + 0.001);
 
             scene.add(line);
         });
@@ -272,18 +275,17 @@ export default class Builder {
             val = ((val/100)*3);
             switch(axis) {
                 case "X":
-                    this.selectedObject.scale.setX(val);
+                    this.selectedObject.object.scale.setX(val !== 0 ? val : 0.00001);
                     break;
                 case "Y":
-                    this.selectedObject.scale.setZ(val);
+                    this.selectedObject.object.scale.setZ(val !== 0 ? val : 0.00001);
                     break;
                 case "Z":
-                    this.selectedObject.scale.setY(val);
+                    this.selectedObject.object.scale.setY(val !== 0 ? val : 0.00001);
                     break;
                 default:
                     break;
             }
-            this.selectedObject.updateMatrix();
         }
     }
 
@@ -313,10 +315,10 @@ export default class Builder {
             let raycaster = new THREE.Raycaster();
             let mouse = new THREE.Vector2();
 
-            if(typeof this.lastSelectedObject.id !== "undefined") {
-                if(!this.lastSelectedObject.editted) {
-                    let { r, g, b } = this.lastSelectedObject.color;
-                    this.lastSelectedObject.object.material.color = new THREE.Color(r, g, b);
+            if(typeof this.selectedObject.id !== "undefined") {
+                if(!this.selectedObject.editted) {
+                    let { r, g, b } = this.selectedObject.color;
+                    this.selectedObject.object.material.color = new THREE.Color(r, g, b);
                 }
             }
 
@@ -333,7 +335,7 @@ export default class Builder {
             let intersects = raycaster.intersectObjects(objects);
 
             if (intersects.length > 0) {
-                this.lastSelectedObject = {
+                this.selectedObject = {
                     id: intersects[0].object.id,
                     color: intersects[0].object.material.color,
                     object: intersects[0].object,
@@ -341,7 +343,6 @@ export default class Builder {
                 };
                 intersects[0].object.material.color = new THREE.Color(0xc2185b);
                 console.log(intersects[0].object);
-                this.selectedObject = intersects[0].object;
             }
         }
     }

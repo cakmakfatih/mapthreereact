@@ -10,18 +10,216 @@ import Levels from './../../Archive/Levels.json';
 import Points from './../../Archive/Points.json';
 
 export default class Builder {
+    project: any;
     container: HTMLDivElement;
     map: maptalks.Map;
-    activeLevel: number;
+    activeLayer: string;
     levels: any;
     unitColors: any;
-    layers: any[];
+    layers: string[];
     coords: number[];
     selectedObject: any;
 
+    createThreeLayer = (id: string) => {
+        let threeLayer = new ThreeLayer(id, {
+            forceRenderOnMoving: true,
+            forceRenderOnRotating: true
+        });
+
+        if(this.activeLayer !== id) {
+            threeLayer.hide();
+        }
+
+        this.map.addLayer(threeLayer);
+    }
+
+    updateThreeLayer = async (items: any, layerId: string, needsUpdate: boolean = false) => {
+        let layer = this.map.getLayer(layerId);
+
+        if(typeof layer._renderer !== "undefined") {
+            console.log(layer);
+        }
+        /*
+        t.map.getLayer(layerId).prepareToDraw = function (gl, scene, camera) {
+            if(needsUpdate) {
+                t.viewLoop(this._renderer);
+            }
+            let light = new THREE.DirectionalLight(0xffffff, 1.5);
+            light.position.set(0, 7, 7).normalize();
+            scene.add(light);
+
+            items.forEach((f: any) => {
+                f.objects.forEach((o: any) => {
+                    o.forEach((m: any) => {
+                        let red = t.randomColor();
+                        let green = t.randomColor();
+                        let blue = t.randomColor();
+
+                        let color = parseInt(red + green + blue, 16);
+                        let mat = new THREE.MeshPhongMaterial({color, transparent: true});
+
+                        let height = (m.feature.properties.HEIGHT*2 + 2) || (f.name === "Venue" ? 1 : 2);
+
+                        let mesh = this.toExtrudeMesh(maptalks.GeoJSON.toGeometry(m.feature), height, mat);
+
+                        if (Array.isArray(mesh)) {
+                            scene.add.apply(scene, mesh);
+                        } else {
+                            scene.add(mesh);
+                        }
+                    });
+                });
+            });
+        }
+        */
+    }
+
+    initiateMap = () => {
+        this.map = new maptalks.Map(this.container.id, { 
+            center: [this.project.coordinates[0],this.project.coordinates[1]],
+            zoom: 18,
+            pitch : 60,
+            bearing : -60,
+            doubleClickZoom : false,
+            attribution : {
+                'content' : '<span style="padding:4px;">&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, &copy; <a href="https://carto.com/attributions">CARTO</a> &copy; <a href="https://osmbuilding.org">osmbuilding.org</a></span>'
+            },
+            baseLayer : new maptalks.TileLayer('tile',{
+                'urlTemplate' : 'https://cartodb-basemaps-{s}.global.ssl.fastly.net/light_all/{z}/{x}/{y}.png',
+                'subdomains'  : ['a','b','c','d']
+            }),
+        });
+    }
+
+    // projeyi açacak fonksiyon
+    // data -> programa özel formatta olacak .geo3d
+    openProject = (data: any) => {
+        // örnek data, kullanıcıdan alınmadığı için burada manuel oluşturuyorum
+        data.name = "Örnek Proje";
+
+        // Levels dosyası, görüntü filtrelemek için gerekli
+        data.layers = [];
+        data.levels = {};
+
+        this.activeLayer = "0";
+
+        Levels.features.forEach((f: any) => {
+            if(data.layers.indexOf(f.properties.ORDINAL.toString()) === -1) {
+                data.layers.push(f.properties.ORDINAL.toString());
+            }
+            if(typeof data.levels[f.properties.LEVEL_ID] === "undefined") {
+                data.levels[f.properties.LEVEL_ID] = f;
+            }
+        });
+
+        // Venue dosyası modelin orta noktasını bulup haritayi ona göre konumlamak için gerekli
+        // Venue dosyasının PROPERTIES kısmında {DISPLAY_XY.coordinates} değeri bulunmak zorunda
+        // Venue dosyasını açılışta hızlı referans edebilmek için data içerisinde tanımlı değil
+        
+        data.coordinates = Venue.features[0].properties.DISPLAY_XY.coordinates;
+        data.venue = this.configureFeature(Venue, "Venue");
+        data.buildings = this.configureFeature(Buildings, "Buildings");
+
+        // diğer tüm objeler burada bulunacak
+        /*
+        data.data = [];
+        data.data.push(this.configureFeature(Units, "Units"));
+        data.data.push(this.configureFeature(Fixtures, "Fixtures"));
+        */
+        this.project = data;
+        this.initiateMap();
+
+        data.layers.forEach((l: string) => {
+            this.createThreeLayer(l);
+        });
+
+        console.log(data.data);
+        this.updateThreeLayer([data.venue], "0", true);
+        this.updateThreeLayer([data.buildings], "0", true);
+    }
+
+    // gelen tipe göre geometri oluşturacak fonksiyon
+    calculateGeometry = (feature: any) => {
+        let features = [];
+        switch(feature.geometry.type) {
+            case "MultiPolygon":
+                // birden fazla obje döndürme sebebi
+                // maptalks.three'nin multipoligon desteklememesi yüzünden, multipolygon feature'ları
+                // poligonlara ayrıştırıp öyle render etmek
+                feature.geometry.coordinates.forEach((poly: any) => {
+                    // düzenlenmiş yeni obje
+                    // grup değeri multiple obje konfigürasyonu için gerekli
+                    let f = {
+                        feature: {
+                            ...feature, geometry: {
+                                ...feature.geometry, 
+                                type: "Polygon", 
+                                coordinates: poly
+                            }, 
+                            properties: {
+                                ...feature.properties, 
+                                type: "Polygon"
+                            }
+                        }, 
+                        group: feature.properties.CATEGORY || null
+                    };
+
+                    features.push(f);
+                });
+                break;
+            case "Polygon":
+                break;
+            default:
+                break;
+        }
+        return features;
+    }
+
+    guid = (): string => {
+        let s4 = () => {
+          return Math.floor((1 + Math.random()) * 0x10000)
+          .toString(16)
+          .substring(1);
+        };
+    
+        return s4() + s4() + '-' + s4() + '-' + s4() + '-' + s4() + '-' + s4() + s4() + s4();
+    }
+
+    // geojson'ı, geo3d'ye uygun şekilde çevirecek fonksiyon
+    // name değeri edit'lerken rahat ulaşabilmek için gerekli
+    configureFeature = (f: any, name: string = "Untitled", id: string = this.guid()) => {
+        let res = {
+            objects: [],
+            name,
+            id
+        };
+
+        switch(f.type) {
+            case "FeatureCollection":
+                f.features.forEach((singleFeature: any) => {
+                    res.objects.push(this.calculateGeometry(singleFeature));
+                });
+                break;
+            case "Feature":
+                res.objects.push(this.calculateGeometry(f));
+                break;
+            default:
+                break;
+        }
+
+        return res;
+    }
+
     constructor(container: HTMLDivElement) {
+        this.container = container;
+        this.layers = [];
+        this.openProject({});
+        this.selectedObject = {};
+        /*
+        // tüm proje
+        this.project = {};
         // aktif level
-        this.activeLevel = 0;
+        this.activeLayer = 0;
         // kullanıcı tarafından seçilecek objenin atanacağı değişken
         this.selectedObject = {};
         // layer'lar (three)
@@ -70,6 +268,7 @@ export default class Builder {
                     forceRenderOnRotating : true
                 }),
                 */
+               /*
                 new maptalks.VectorLayer('buildings', {
                     enableAltitude: true,
                     forceRenderOnMoving: true,
@@ -114,7 +313,8 @@ export default class Builder {
                 }).addTo(this.map.getLayer('buildings'));
             });
         });
-        
+        */
+        /*
         // threejs init
         threeLayer.prepareToDraw = function (gl, scene, camera) {
             // ışık
@@ -128,7 +328,7 @@ export default class Builder {
             // dış hatlar için önce Venue
             Venue.features.forEach((f: any) => {
                 f.geometry.coordinates.forEach((j: any) => {
-                    let color = parseInt(Config.colorPalette["red"][5], 16);
+                    let color = parseInt(Config.colorPalette["grey"][7], 16);
                     let m = new THREE.MeshPhongMaterial({color: color});
 
                     // maptalks.three MultiPolygon ile mesh yapamadığı için, multipolygon'dan polygon tipi feature'a dönüşüm
@@ -150,8 +350,7 @@ export default class Builder {
             Units.features.forEach((f: any) => {
                 // aktiflevel ile unit'in level'ı aynıysa render et
                 if(
-                    t.levels[f.properties.LEVEL_ID].properties.ORDINAL === t.activeLevel &&
-                    (f.properties.CATEGORY === "Room" || f.properties.CATEGORY === "Stairs" || f.properties.CATEGORY === "Elevator" || f.properties.CATEGORY === "Stairs" || f.properties.CATEGORY === "Escalator")
+                    t.levels[f.properties.LEVEL_ID].properties.ORDINAL === t.activeLayer
                 ) {
                     f.geometry.coordinates.forEach((j: any) => {
                         t.addLines(j);
@@ -199,6 +398,7 @@ export default class Builder {
 
         // buildings layer'ını gözükebilmesi için öne taşı
         this.map.getLayer('buildings').bringToFront();
+        */
     }
 
     // config'deki renkleri css stili için uygun hale getirme
@@ -251,7 +451,7 @@ export default class Builder {
             val = ((val/100)*3);
             switch(axis) {
                 case "X":
-                    // eğer 0 ise, 0'a eşitlememe durumu threejs'in scale'ı 0 yapamamasından kaynaklı
+                    // eğer 0 ise, 0'a eşitlemek yerine 0.00001'e eşitleme durumu threejs'in scale'ı 0 yapamamasından kaynaklı
                     this.selectedObject.object.scale.setX(val !== 0 ? val : 0.00001);
                     break;
                 case "Y":
@@ -312,13 +512,13 @@ export default class Builder {
             let objects = [];
 
             // kontrollerin yapıldığı threeLayer'ı, constructor içerisinde oluştuğunda buraya pushlamıştık
-            this.layers[0].getScene().children.forEach(child => {
+            this.map.getLayer(this.activeLayer).getScene().children.forEach(child => {
                 if (child instanceof THREE.Mesh) {
                     objects.push(child);
                 }
             });
 
-            raycaster.setFromCamera(mouse, this.layers[0].getCamera());
+            raycaster.setFromCamera(mouse, this.map.getLayer(this.activeLayer).getCamera());
             let intersects = raycaster.intersectObjects(objects);
 
             // eğer kesişen obje varsa

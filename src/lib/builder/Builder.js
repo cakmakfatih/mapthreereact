@@ -34,44 +34,44 @@ export default class Builder {
     }
 
     updateThreeLayer = async (items: any, layerId: string, needsUpdate: boolean = false) => {
-        let layer = this.map.getLayer(layerId);
+        let t = this;
+        let layer = t.map.getLayer(layerId);
 
-        if(typeof layer._renderer !== "undefined") {
-            console.log(layer);
-        }
-        /*
-        t.map.getLayer(layerId).prepareToDraw = function (gl, scene, camera) {
-            if(needsUpdate) {
-                t.viewLoop(this._renderer);
-            }
-            let light = new THREE.DirectionalLight(0xffffff, 1.5);
-            light.position.set(0, 7, 7).normalize();
-            scene.add(light);
-
-            items.forEach((f: any) => {
-                f.objects.forEach((o: any) => {
-                    o.forEach((m: any) => {
-                        let red = t.randomColor();
-                        let green = t.randomColor();
-                        let blue = t.randomColor();
-
-                        let color = parseInt(red + green + blue, 16);
-                        let mat = new THREE.MeshPhongMaterial({color, transparent: true});
-
-                        let height = (m.feature.properties.HEIGHT*2 + 2) || (f.name === "Venue" ? 1 : 2);
-
-                        let mesh = this.toExtrudeMesh(maptalks.GeoJSON.toGeometry(m.feature), height, mat);
-
-                        if (Array.isArray(mesh)) {
-                            scene.add.apply(scene, mesh);
-                        } else {
-                            scene.add(mesh);
-                        }
+        if(typeof layer._renderer.scene === "undefined") {
+            t.map.getLayer(layerId).prepareToDraw = function (gl, scene, camera) {
+                if(needsUpdate) {
+                    t.viewLoop(this._renderer);
+                }
+                let light = new THREE.DirectionalLight(0xffffff, 1.5);
+                light.position.set(0, 7, 7).normalize();
+                scene.add(light);
+    
+                items.forEach((f: any) => {
+                    f.objects.forEach((o: any) => {
+                        o.forEach((m: any) => {
+                            let red = t.randomColor();
+                            let green = t.randomColor();
+                            let blue = t.randomColor();
+    
+                            let color = parseInt(red + green + blue, 16);
+                            let mat = new THREE.MeshPhongMaterial({color, transparent: true});
+    
+                            let height = (m.feature.properties.HEIGHT*2 + 2) || (f.name === "Venue" ? 1 : 2);
+    
+                            let mesh = this.toExtrudeMesh(maptalks.GeoJSON.toGeometry(m.feature), height, mat);
+    
+                            if (Array.isArray(mesh)) {
+                                scene.add.apply(scene, mesh);
+                            } else {
+                                scene.add(mesh);
+                            }
+                        });
                     });
                 });
-            });
+            }
+        } else {
+            console.log("h");
         }
-        */
     }
 
     initiateMap = () => {
@@ -133,7 +133,7 @@ export default class Builder {
             this.createThreeLayer(l);
         });
 
-        console.log(data.data);
+        
         this.updateThreeLayer([data.venue], "0", true);
         this.updateThreeLayer([data.buildings], "0", true);
     }

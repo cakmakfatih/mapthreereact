@@ -93,7 +93,7 @@ export default class LayerController {
                 
                 if(o.group !== null) {
                     if(typeof this.materials[o.group] === "undefined") {
-                        this.materials[o.group] = new THREE.MeshPhongMaterial({color: f.name !== "Venue" ? this.randomColorFromPalette() : 0xffffff, transparent: true});
+                        this.materials[o.group] = new THREE.MeshPhongMaterial({color: this.randomColorFromPalette(), transparent: true});
                     }
 
                     mat = this.materials[o.group];

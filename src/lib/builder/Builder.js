@@ -8,6 +8,7 @@ import Units from './../../Archive/Units.json';
 import Fixtures from './../../Archive/Fixtures.json';
 import Levels from './../../Archive/Levels.json';
 import Points from './../../Archive/Points.json';
+import LayerController from './LayerController';
 
 export default class Builder {
     project: any;
@@ -19,60 +20,7 @@ export default class Builder {
     layers: string[];
     coords: number[];
     selectedObject: any;
-
-    createThreeLayer = (id: string) => {
-        let threeLayer = new ThreeLayer(id, {
-            forceRenderOnMoving: true,
-            forceRenderOnRotating: true
-        });
-
-        if(this.activeLayer !== id) {
-            threeLayer.hide();
-        }
-
-        this.map.addLayer(threeLayer);
-    }
-
-    updateThreeLayer = async (items: any, layerId: string, needsUpdate: boolean = false) => {
-        let t = this;
-        let layer = t.map.getLayer(layerId);
-
-        if(typeof layer._renderer.scene === "undefined") {
-            t.map.getLayer(layerId).prepareToDraw = function (gl, scene, camera) {
-                if(needsUpdate) {
-                    t.viewLoop(this._renderer);
-                }
-                let light = new THREE.DirectionalLight(0xffffff, 1.5);
-                light.position.set(0, 7, 7).normalize();
-                scene.add(light);
-    
-                items.forEach((f: any) => {
-                    f.objects.forEach((o: any) => {
-                        o.forEach((m: any) => {
-                            let red = t.randomColor();
-                            let green = t.randomColor();
-                            let blue = t.randomColor();
-    
-                            let color = parseInt(red + green + blue, 16);
-                            let mat = new THREE.MeshPhongMaterial({color, transparent: true});
-    
-                            let height = (m.feature.properties.HEIGHT*2 + 2) || (f.name === "Venue" ? 1 : 2);
-    
-                            let mesh = this.toExtrudeMesh(maptalks.GeoJSON.toGeometry(m.feature), height, mat);
-    
-                            if (Array.isArray(mesh)) {
-                                scene.add.apply(scene, mesh);
-                            } else {
-                                scene.add(mesh);
-                            }
-                        });
-                    });
-                });
-            }
-        } else {
-            console.log("h");
-        }
-    }
+    layerController: LayerController;
 
     initiateMap = () => {
         this.map = new maptalks.Map(this.container.id, { 
@@ -89,6 +37,8 @@ export default class Builder {
                 'subdomains'  : ['a','b','c','d']
             }),
         });
+
+        this.layerController = new LayerController(this.map, this.viewLoop)
     }
 
     // projeyi açacak fonksiyon
@@ -121,58 +71,56 @@ export default class Builder {
         data.buildings = this.configureFeature(Buildings, "Buildings");
 
         // diğer tüm objeler burada bulunacak
-        /*
+        
         data.data = [];
         data.data.push(this.configureFeature(Units, "Units"));
         data.data.push(this.configureFeature(Fixtures, "Fixtures"));
-        */
+        
         this.project = data;
         this.initiateMap();
 
         data.layers.forEach((l: string) => {
-            this.createThreeLayer(l);
+            this.layerController.createThreeLayer(l);
         });
 
-        
-        this.updateThreeLayer([data.venue], "0", true);
-        this.updateThreeLayer([data.buildings], "0", true);
+        this.layerController.updateThreeLayer([data.venue], "0", true);
+        this.layerController.updateThreeLayer([data.buildings], "0", true);
+
+        data.data.forEach((a: any) => {
+            console.log(a);
+        })
     }
 
     // gelen tipe göre geometri oluşturacak fonksiyon
     calculateGeometry = (feature: any) => {
-        let features = [];
+        let f = {};
         switch(feature.geometry.type) {
             case "MultiPolygon":
                 // birden fazla obje döndürme sebebi
                 // maptalks.three'nin multipoligon desteklememesi yüzünden, multipolygon feature'ları
                 // poligonlara ayrıştırıp öyle render etmek
-                feature.geometry.coordinates.forEach((poly: any) => {
-                    // düzenlenmiş yeni obje
-                    // grup değeri multiple obje konfigürasyonu için gerekli
-                    let f = {
-                        feature: {
-                            ...feature, geometry: {
-                                ...feature.geometry, 
-                                type: "Polygon", 
-                                coordinates: poly
-                            }, 
-                            properties: {
-                                ...feature.properties, 
-                                type: "Polygon"
-                            }
-                        }, 
-                        group: feature.properties.CATEGORY || null
-                    };
-
-                    features.push(f);
-                });
+                f = {
+                    feature: {
+                        ...feature,
+                        geometry: {
+                            ...feature.geometry,
+                            type: "Polygon",
+                            coordinates: feature.geometry.coordinates[0]
+                        },
+                        properties: {
+                            ...feature.properties,
+                            type: "Polygon"
+                        }
+                    },
+                    group: feature.properties.CATEGORY || null
+                }
                 break;
             case "Polygon":
                 break;
             default:
                 break;
         }
-        return features;
+        return f;
     }
 
     guid = (): string => {

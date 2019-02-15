@@ -11,21 +11,24 @@ export default class Editor extends Component<{}, EditorState> {
         super(props);
 
         this.state = {
-            menu: "START"
+            menu: "START",
+            activeLayer: "0"
         };
     }
 
     componentWillMount = () => {
-        let fileService: FileService = new FileService();
-
-        this.setState({
-            fileService
-        });
+        this.fileService = new FileService();
     }
 
     componentDidMount = () => {
-        this.builder = new Builder(this.refs["3d-view-container"]);
+        this.builder = new Builder(this.refs["3d-view-container"], this.setLayers);
         document.addEventListener("click", this.builder.handleClick, false);
+    }
+
+    setLayers = async (layers: any) => {
+        await this.setState({
+            layers
+        });
     }
 
     renderAside = () => {
@@ -37,6 +40,26 @@ export default class Editor extends Component<{}, EditorState> {
             default:
                 break;
         }
+    }
+
+    levelSelector = () => {
+        let { layers, activeLayer } = this.state;
+        if(typeof layers === "undefined")
+            return null;
+        return (
+            <div className="level-selector-pane">
+                {
+                    layers.map((l, key) => !isNaN(l) ? <div key={key} className={
+                        activeLayer === l ? "active" : ""
+                    } onClick={() => {
+                        this.builder.showLayer(l);
+                        this.setState({
+                            activeLayer: l
+                        });
+                    }}>{l}</div> : null)
+                }
+            </div>
+        );
     }
 
     asideStart = () => (
@@ -146,6 +169,7 @@ export default class Editor extends Component<{}, EditorState> {
         return (
             <Layout flexDirection="row">
                 {this.editPanel()}
+                {this.levelSelector()}
                 <div ref="3d-view-container" id="geo3d-view-container" />
             </Layout>
         );

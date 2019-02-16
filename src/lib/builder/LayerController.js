@@ -2,6 +2,8 @@ import { ThreeLayer } from 'maptalks.three';
 import * as maptalks from 'maptalks';
 import * as THREE from 'three';
 import Config from './../../Config.json';
+const extrudePolyline = require('extrude-polyline');
+const Complex = require('three-simplicial-complex')(THREE);
 
 export default class LayerController {
     items: any;
@@ -100,13 +102,20 @@ export default class LayerController {
                 } else {
                     mat = new THREE.MeshPhongMaterial({color: this.randomColorFromPalette(), transparent: true});
                 }
-                let height = (o.properties.HEIGHT*2 + 2) || (f.name === "Venue" ? 1 : 2);
+
+                let height = (o.properties.HEIGHT*2) || 1;
                 let mesh = this.t.toExtrudeMesh(o.geometry, height, mat);
+
+                let linePosZ = mesh.geometry.parameters.options.depth;
+
+                let line = this.generateWall(linePosZ, this.t.toShape(o.geometry).getPoints(), mesh.position, linePosZ/2);
 
                 if (Array.isArray(mesh)) {
                     scene.add.apply(scene, mesh);
+                    scene.add.apply(scene, line);
                 } else {
                     scene.add(mesh);
+                    scene.add(line);
                 }
             });
         });
@@ -123,5 +132,37 @@ export default class LayerController {
         let t = c[Math.floor(Math.random() * c.length)];
 
         return parseInt(t, 16);
+    }
+
+    lineString = (points, lineWidth, height) => {
+        let pts = [];
+        points.push(points[0]);
+        points.forEach((a: any) => {
+            pts.push([a.x, a.y]);
+        })
+        const simplicialComplex = extrudePolyline({
+            thickness: lineWidth,
+            // Adjust to taste!
+            cap: 'square',  // or 'butt'
+            join: 'bevel'
+        }).build(pts);
+
+        for (const position of simplicialComplex.positions) {
+            position[2] = height+height/10;
+        }
+            
+        return Complex(simplicialComplex);
+    }
+
+    generateWall = (height, points, position, lineWidth) => {
+        let geometry = this.lineString(points, lineWidth, height);
+
+        let mat = new THREE.MeshPhongMaterial({color: 0x000000, side: THREE.DoubleSide});
+        
+        let line = new THREE.Mesh(geometry, mat);
+        line.position.setX(position.x);
+        line.position.setY(position.y);
+        
+        return line;
     }
 }

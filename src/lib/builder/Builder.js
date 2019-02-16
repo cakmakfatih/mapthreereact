@@ -1,6 +1,5 @@
 import * as THREE from 'three';
 import * as maptalks from 'maptalks';
-import { ThreeLayer } from 'maptalks.three';
 import Config from './../../Config.json';
 import Venue from './../../Archive/Venue.json';
 import Buildings from './../../Archive/Buildings.json';

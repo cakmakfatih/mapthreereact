@@ -202,22 +202,20 @@ label.btn-default:active, button.btn-default:active {
     background-color: #fff;
     z-index: 10;
     box-shadow: 0 2px 4px rgba(0, 0, 0, .4);
+    overflow-y: scroll;
+    height: calc(100% - 60px);
+    padding: 15px;
+}
+.edit-panel > section {
+    margin-top: 10px;
+    width: 100%;
     display: flex;
     flex-direction: column;
-    padding: 15px;
-    justify-content: space-between;
-}
-.edit-panel > section > button {
-    margin-top: 10px;
 }
 .edit-panel > h3 {
     font-weight: 500;
     margin: 0;
     font-size: 1.4rem;
-}
-.edit-panel > section {
-    display: flex;
-    flex-direction: column;
 }
 .pane-header {
     display: flex;

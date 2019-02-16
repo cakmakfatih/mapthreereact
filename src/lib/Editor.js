@@ -84,66 +84,52 @@ export default class Editor extends Component<{}, EditorState> {
 
     editPanel = () => (
         <div className="edit-panel">
-            <section>
-                <header className="pane-header">
-                    <section className="pane-h-left">
-                        <div className="pane-h-text">
-                            <h3>Object (Unit)</h3>
-                            <span className="secondary-sub" style={{paddingLeft: 0}}>Category: Elevator</span>
-                        </div>
-                    </section>
-                    <i className="fas fa-times pane-header-i" />
-                </header>
-
-                <h3 className="pane-subtitle">Visibility</h3>
-
-                <div className="form-group">
-                    <div className="row-g" style={{paddingBottom: 10}}>
-                        <label className="secondary-sub" style={{flex: 1}} htmlFor="cb-visib">Visible: </label>
-                        <input className="cb-default" type="checkbox" id="cb-visib" defaultChecked={true}/>
+            <header className="pane-header">
+                <section className="pane-h-left">
+                    <div className="pane-h-text">
+                        <h3>Object (Unit)</h3>
+                        <span className="secondary-sub" style={{paddingLeft: 0}}>Category: Elevator</span>
                     </div>
-                    <span className="secondary-sub">Opacity: </span>
-                    <div className="row-g">
-                        <input type="text" className="inp-default" placeholder="1" />
-                        <input type="range" style={{flex: 1}} min="0" max="100" onChange={(e) => this.builder.changeOpacity(e.target.value)} className="slider" id="myRange" />
-                    </div>
+                </section>
+                <i className="fas fa-times pane-header-i" />
+            </header>
+
+            <h3 className="pane-subtitle">Visibility</h3>
+
+            <div className="form-group">
+                <div className="row-g" style={{paddingBottom: 10}}>
+                    <label className="secondary-sub" style={{flex: 1}} htmlFor="cb-visib">Visible: </label>
+                    <input className="cb-default" type="checkbox" id="cb-visib" defaultChecked={true}/>
                 </div>
-
-                <h3 className="pane-subtitle">Extrusion</h3>
-
-                <div className="form-group">
-                    <span className="secondary-sub">Height: </span>
-                    <div className="row-g">
-                        <input type="text" className="inp-default" placeholder="1" />
-                        <input type="range" style={{flex: 1}} min="0" max="100" onChange={(e) => this.builder.extrudeObject("Y", e.target.value)} className="slider" id="myRange" />
-                    </div>
+                <span className="secondary-sub">Opacity: </span>
+                <div className="row-g">
+                    <input type="text" className="inp-default" placeholder="1" />
+                    <input type="range" style={{flex: 1}} min="0" max="100" onChange={(e) => this.builder.changeOpacity(e.target.value)} className="slider" id="myRange" />
                 </div>
-                <h3 className="pane-subtitle">Position</h3>
+            </div>
 
-                <div className="form-group">
-                    <div className="row-g">
-                        <input type="text" placeholder="X" className="inp-default" />
-                        <input type="text" placeholder="Y" className="inp-default" />
-                        <div style={{flex: 1}} />
-                        <button className="btn-default btn-ico">
-                            <i className="fas fa-crosshairs" />
-                        </button>
-                    </div>
+            <h3 className="pane-subtitle">Extrusion</h3>
+
+            <div className="form-group">
+                <span className="secondary-sub">Height: </span>
+                <div className="row-g">
+                    <input type="text" className="inp-default" placeholder="1" />
+                    <input type="range" style={{flex: 1}} min="0" max="100" onChange={(e) => this.builder.extrudeObject("Y", e.target.value)} className="slider" id="myRange" />
                 </div>
-                <h3 className="pane-subtitle">Material</h3>
-                <div className="form-group">
-                    <span className="secondary-sub">Color: </span>
-                    <div className="row-g">
-                        <input className="inp-default" placeholder="R" ref="pane-r" onChange={() => this.builder.changeColor(this.refs['pane-r'].value, this.refs['pane-g'].value, this.refs['pane-b'].value)} />
-                        <input className="inp-default" placeholder="G" ref="pane-g" onChange={() => this.builder.changeColor(this.refs['pane-r'].value, this.refs['pane-g'].value, this.refs['pane-b'].value)} />
-                        <input className="inp-default" placeholder="B" ref="pane-b" onChange={() => this.builder.changeColor(this.refs['pane-r'].value, this.refs['pane-g'].value, this.refs['pane-b'].value)} />
-                        <div style={{flex: 1}} />
-                        <button className="btn-default btn-ico" onClick={() => this.builder.changeColor(this.refs['pane-r'].value, this.refs['pane-g'].value, this.refs['pane-b'].value)}>
-                            <i className="fas fa-highlighter" />
-                        </button>
-                    </div>
+            </div>
+            <h3 className="pane-subtitle">Material</h3>
+            <div className="form-group">
+                <span className="secondary-sub">Color: </span>
+                <div className="row-g">
+                    <input className="inp-default" placeholder="R" ref="pane-r" onChange={() => this.builder.changeColor(this.refs['pane-r'].value, this.refs['pane-g'].value, this.refs['pane-b'].value)} />
+                    <input className="inp-default" placeholder="G" ref="pane-g" onChange={() => this.builder.changeColor(this.refs['pane-r'].value, this.refs['pane-g'].value, this.refs['pane-b'].value)} />
+                    <input className="inp-default" placeholder="B" ref="pane-b" onChange={() => this.builder.changeColor(this.refs['pane-r'].value, this.refs['pane-g'].value, this.refs['pane-b'].value)} />
+                    <div style={{flex: 1}} />
+                    <button className="btn-default btn-ico" onClick={() => this.builder.changeColor(this.refs['pane-r'].value, this.refs['pane-g'].value, this.refs['pane-b'].value)}>
+                        <i className="fas fa-highlighter" />
+                    </button>
                 </div>
-            </section>
+            </div>
             <div className="form-group">
                 <label className="secondary-sub">Current Color: </label>
                 <div ref="c-color-prev" style={{ backgroundColor: `#303030`, padding: 15 }} className="btn-default"></div>

@@ -159,7 +159,7 @@ export default class LayerController {
     generateWall = (height, points, position, lineWidth) => {
         let geometry = this.lineString(points, lineWidth, height);
 
-        let mat = new THREE.MeshBasicMaterial({color: 0x535353, side: THREE.DoubleSide});
+        let mat = new THREE.MeshBasicMaterial({color: 0x000000, side: THREE.DoubleSide});
         
         let line = new THREE.Mesh(geometry, mat);
         line.position.setX(position.x);

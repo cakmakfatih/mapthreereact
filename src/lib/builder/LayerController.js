@@ -2,8 +2,7 @@ import { ThreeLayer } from 'maptalks.three';
 import * as maptalks from 'maptalks';
 import * as THREE from 'three';
 import Config from './../../Config.json';
-const extrudePolyline = require('extrude-polyline');
-const Complex = require('three-simplicial-complex')(THREE);
+import {extrudePolyline} from 'geometry-extrude';
 
 export default class LayerController {
     items: any;
@@ -13,12 +12,14 @@ export default class LayerController {
     t: any;
     levels: any;
     materials: any;
+    wallMat: any;
 
     constructor(map: maptalks.Map, viewLoop: VoidFunction) {
         this.map = map;
         this.viewLoop = viewLoop;
         this.items = {};
         this.materials = {};
+        this.wallMat = new THREE.MeshLambertMaterial({color: parseInt(Config.colorPalette.grey[7], 16) });;
     }
 
     setLevels = (levels: any) => {
@@ -35,6 +36,7 @@ export default class LayerController {
         Object.keys(this.items).forEach((i: any) => {
             if(i === layerId) {
                 this.items[i].threeLayer.show();
+                this.viewLoop(this.items[i].renderer, i);
             } else {
                 if(i !== "BASE_LAYER")
                     this.items[i].threeLayer.hide();
@@ -59,6 +61,7 @@ export default class LayerController {
             let light = new THREE.DirectionalLight(0xffffff, 1.5);
             light.position.set(0, 7, 7).normalize();
             scene.add(light);
+
             t.items[id] = {
                 threeLayer,
                 gl,
@@ -66,23 +69,19 @@ export default class LayerController {
                 camera,
                 renderer: this._renderer
             };
+
+            if(id === "BASE_LAYER")
+                t.viewLoop(this._renderer, id);
         }
     }
 
-    updateThreeLayer = async (items: any, layerId: string, needsUpdate: boolean = false) => {
+    updateThreeLayer = async (items: any, layerId: string) => {
         if(typeof this.items[layerId] === "undefined") {
             await this.sleep(500);
-            return this.updateThreeLayer(items, layerId, needsUpdate);
+            return this.updateThreeLayer(items, layerId);
         }
 
-        let { scene, renderer, updateLayer } = this.items[layerId];
-
-        if(needsUpdate) {
-            if(typeof updateLayer === "undefined") {
-                this.items[layerId].updateLayer = true;
-                this.viewLoop(renderer);
-            }
-        }
+        let { scene, renderer } = this.items[layerId];
 
         items.forEach((f: any) => {
             f.objects.forEach((o: any) => {
@@ -95,12 +94,12 @@ export default class LayerController {
                 
                 if(o.group !== null) {
                     if(typeof this.materials[o.group] === "undefined") {
-                        this.materials[o.group] = new THREE.MeshPhongMaterial({color: this.randomColorFromPalette(), transparent: true});
+                        this.materials[o.group] = new THREE.MeshLambertMaterial({color: this.randomColorFromPalette(), transparent: true});
                     }
 
                     mat = this.materials[o.group];
                 } else {
-                    mat = new THREE.MeshPhongMaterial({color: this.randomColorFromPalette(), transparent: true});
+                    mat = new THREE.MeshLambertMaterial({color: this.randomColorFromPalette(), transparent: true});
                 }
 
                 let height = (o.properties.HEIGHT*2) || 1;
@@ -108,14 +107,21 @@ export default class LayerController {
 
                 let linePosZ = mesh.geometry.parameters.options.depth;
 
-                let line = this.generateWall(linePosZ, this.t.toShape(o.geometry).getPoints(), mesh.position, linePosZ/2);
+                if(f.name !== "Venue") {
+                    let wall = this.generateWall(linePosZ, this.t.toShape(o.geometry).getPoints(), mesh.position, linePosZ/2);
+
+                    if (Array.isArray(mesh)) {
+                        scene.add.apply(scene, wall);
+                    } else {
+                        scene.add(wall);
+                    }
+                }
+                
 
                 if (Array.isArray(mesh)) {
                     scene.add.apply(scene, mesh);
-                    scene.add.apply(scene, line);
                 } else {
                     scene.add(mesh);
-                    scene.add(line);
                 }
             });
         });
@@ -136,35 +142,28 @@ export default class LayerController {
 
     lineString = (points, lineWidth, height) => {
         let pts = [];
-        
-        points.push(points[0]);
-        points.forEach((a: any) => {
-            pts.push([a.x, a.y]);
+        points.forEach((p: any) => pts.push([p.x, p.y]));
+        pts.push(pts[0]);
+
+        let res = extrudePolyline([pts], {
+            depth: height*6,
+            lineWidth: height
         });
-
-        const simplicialComplex = extrudePolyline({
-            thickness: lineWidth,
-            // Adjust to taste!
-            cap: 'square',  // or 'butt'
-            join: 'bevel'
-        }).build(pts);
-
-        for (const position of simplicialComplex.positions) {
-            position[2] = height+height/10;
-        }
-            
-        return Complex(simplicialComplex);
+        return res;
     }
 
-    generateWall = (height, points, position, lineWidth) => {
-        let geometry = this.lineString(points, lineWidth, height);
+    generateWall = (height, points, p, lineWidth) => {
+        let {indices, position, uv, normal} = this.lineString(points, lineWidth, height);
 
-        let mat = new THREE.MeshBasicMaterial({color: 0x000000, side: THREE.DoubleSide});
-        
-        let line = new THREE.Mesh(geometry, mat);
-        line.position.setX(position.x);
-        line.position.setY(position.y);
-        
-        return line;
+        const geometry = new THREE.BufferGeometry();
+
+        geometry.addAttribute('position', new THREE.Float32BufferAttribute(position, 3));
+        geometry.addAttribute('normal', new THREE.Float32BufferAttribute(normal, 3));
+        geometry.setIndex(new THREE.Uint16BufferAttribute(indices, 1));
+
+        let mesh = new THREE.Mesh(geometry, this.wallMat);
+        mesh.position.set(p.x, p.y, p.z);
+
+        return mesh;
     }
 }

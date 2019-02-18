@@ -5,6 +5,7 @@
   "dependencies": {
     "extrude-polyline": "^1.0.6",
     "flow-bin": "^0.92.1",
+    "geometry-extrude": "^0.1.2",
     "maptalks": "^0.43.0",
     "maptalks.three": "^0.6.1",
     "react": "^16.8.1",

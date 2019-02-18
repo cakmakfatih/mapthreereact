@@ -21,8 +21,8 @@ export default class Builder {
     setLayers: VoidFunction;
 
     showLayer = (layerId: string) => {
-        this.layerController.showOnly(layerId);
         this.activeLayer = layerId;
+        this.layerController.showOnly(layerId);
     }
 
     initiateMap = () => {
@@ -55,8 +55,6 @@ export default class Builder {
         data.levels = {};
 
         data.layers.push("BASE_LAYER");
-
-        this.activeLayer = "0";
 
         Levels.features.forEach((f: any) => {
             if(data.layers.indexOf(f.properties.ORDINAL.toString()) === -1) {
@@ -95,9 +93,9 @@ export default class Builder {
 
         this.showLayer(this.activeLayer);
 
-        this.layerController.updateThreeLayer([data.venue], "BASE_LAYER", true);
+        this.layerController.updateThreeLayer([data.venue], "BASE_LAYER");
 
-        data.data.forEach((i: any) => this.layerController.updateThreeLayer([i], "0", true));
+        data.data.forEach((i: any) => this.layerController.updateThreeLayer([i], "0"));
         this.layerController.updateThreeLayer([data.buildings], "CEILING_LAYER");
     }
 
@@ -170,6 +168,7 @@ export default class Builder {
     }
 
     constructor(container: HTMLDivElement, setLayers: VoidFunction) {
+        this.activeLayer = "0";
         this.setLayers = setLayers;
         this.container = container;
         this.openProject({});
@@ -192,30 +191,6 @@ export default class Builder {
     // opaklık değiştirme
     changeOpacity = (o: number) => {
         this.selectedObject.object.material.opacity = o/100;
-    }
-
-    // çizgileri ekleme
-    addLines = (poly: any) => {
-        poly.forEach((k: any) => {
-            let coords: maptalks.Coordinate[] = [];
-
-            // dosya içerisindeki koordinatları, maptalks koordinat tipine çevirip coords array'ine at
-            k.forEach((q: any) => coords.push(new maptalks.Coordinate(q[0], q[1])));
-
-            // coords array'indeki koordinatları kullanıp harita üzerinde LineString oluştur
-            new maptalks.LineString(coords, {
-                properties: {
-                    // yükseklik, units'in bulunduğu noktaya göre ayarlı
-                    'altitude': 2,
-                },
-                symbol: {
-                    // çizgi genişliği
-                    'lineWidth': 1.5,
-                    // çizgi rengi
-                    'lineColor': '#797979'
-                }
-            }).addTo(this.map.getLayer('lines'));
-        });
     }
 
     extrudeObject = (axis: string, val: number) => {
@@ -243,8 +218,11 @@ export default class Builder {
 
     // aldığı renderer a göre görüntüyü update eden fonksiyon
     // renderer maptalks'ın threeLayer'ının init sırasında oluşulup buraya gönderiliyor
-    viewLoop = (renderer) => {
-        requestAnimationFrame(() => this.viewLoop(renderer));
+    viewLoop = (renderer, i) => {
+        if(i === this.activeLayer || i === "BASE_LAYER") {
+            requestAnimationFrame(() => this.viewLoop(renderer, i));
+        }
+        
         this.update(renderer);
         this.render(renderer);
     }
@@ -300,7 +278,6 @@ export default class Builder {
                     editted: false
                 };
                 intersects[0].object.material.color = new THREE.Color(0xc2185b);
-                //console.log(intersects[0].object);
             }
         }
     }

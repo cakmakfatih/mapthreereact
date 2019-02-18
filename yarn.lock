@@ -9220,6 +9220,18 @@ three-simplicial-complex@^69.0.6:
   dependencies:
     inherits "^2.0.1"
 
+three.textsprite@^19.0.0:
+  version "19.0.0"
+  resolved "https://registry.yarnpkg.com/three.textsprite/-/three.textsprite-19.0.0.tgz#79fc12a013cbe54b6c783f0c0f3bca890d6c9527"
+  integrity sha512-rQyHrVdh+SpeDQGvAunpGeq4YPKHy45oxNsYnFDqkDsriY7UAIMdv/btkTn7mRyq2KiEPs9uS9G74U4NZBkVNA==
+  dependencies:
+    three.texttexture "^19.0.0"
+
+three.texttexture@^19.0.0:
+  version "19.0.0"
+  resolved "https://registry.yarnpkg.com/three.texttexture/-/three.texttexture-19.0.0.tgz#a60f04b491fd50888151de6465f68191b17b862e"
+  integrity sha512-p+OKMk7NNMt8LYj+eUmhy+PQd0eBGncU0SSLIbOTH9zUDSBaIsk8j9FLHgc5+oXjqDlPHLfZZ+l+ita2fs+XWQ==
+
 three@^0.101.1:
   version "0.101.1"
   resolved "https://registry.yarnpkg.com/three/-/three-0.101.1.tgz#e7681ef52f4e572cb84f307f16f540c457030ec6"

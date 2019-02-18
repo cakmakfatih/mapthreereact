@@ -4,30 +4,49 @@ import * as THREE from 'three';
 import Config from './../../Config.json';
 import {extrudePolyline} from 'geometry-extrude';
 
+// katlar, sıralamalar, kat geçişleri gibi işlemleri bu sınıf hallediyor
+
 export default class LayerController {
+    // her 3d layer, items objesi içerisinde barınıyor
     items: any;
+    // bu, oluşturulacağı sınıftan gelecek olan harita değeri
     map: maptalks.Map;
+    // realtime update yapabilmek için gerekli fonksiyon, Builder'dan geliyor
     viewLoop: VoidFunction;
-    toExtrudeMesh: any;
+    // threeLayer için oluşturulmuş referans değişkeni
     t: any;
+    // bulunan katlar
     levels: any;
+    // gruplara ayırırken ekstra materyal oluşturmak yerine aynı materyalleri tekrar kullanabilmek için tanımlı değişken, 
     materials: any;
+    // duvarlar için kullanılan materyal
     wallMat: any;
+    // threejs harici 2d layer'lar, sadece marker'lar burada
+    vectorLayers: any;
 
     constructor(map: maptalks.Map, viewLoop: VoidFunction) {
         this.map = map;
         this.viewLoop = viewLoop;
+        this.vectorLayers = {};
         this.items = {};
         this.materials = {};
-        this.wallMat = new THREE.MeshLambertMaterial({color: parseInt(Config.colorPalette.grey[7], 16) });;
-    }
+        this.wallMat = new THREE.MeshLambertMaterial({color: parseInt(Config.colorPalette.grey[7], 16) });
 
+        // zoom performans için sınırlı
+        this.map.setMinZoom(18.0);
+    }
+    
+    // level'ları atayan fonksiyon
     setLevels = (levels: any) => {
         this.levels = levels;
     }
-
+    
+    // düz timeout fonksiyonu, scene atama işlemi bazen vakit aldığı için
+    // hataları önlemek adına oluşturulmuş
     sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
 
+    // girilen layer ve venue dışındaki tüm layer'ları görünmez yapıp,
+    // aynı şekilde girilen layer dışındaki tüm layer'ların update fonksiyonlarını durduruyor
     showOnly = async (layerId: string) => {
         if(Object.keys(this.items).length === 0) {
             await this.sleep(500);
@@ -35,15 +54,35 @@ export default class LayerController {
         }
         Object.keys(this.items).forEach((i: any) => {
             if(i === layerId) {
+                this.vectorLayers[`${i}V`].show();
                 this.items[i].threeLayer.show();
                 this.viewLoop(this.items[i].renderer, i);
             } else {
+                this.vectorLayers[`${i}V`].hide();
                 if(i !== "BASE_LAYER")
                     this.items[i].threeLayer.hide();
             }
         });
     }
 
+    // vektör layer'larını oluşturan fonksiyon
+    createVectorLayer = (id: string) => {
+        id = `${id}V`;
+        let layer = new maptalks.VectorLayer(id).addTo(this.map);
+        this.vectorLayers[id] = layer;
+        layer.hide();
+        layer.bringToFront();
+    }
+
+    // marker'ları eklemeye yarayan fonksiyon
+    addMarkers = (m: any) => {
+        m.objects.forEach((i: any) => {
+            let key = this.levels[i.properties.LEVEL_ID].properties.ORDINAL.toString();
+            i.marker.addTo(this.map.getLayer(`${key}V`));
+        });
+    }
+
+    // threejs layer'larını oluşturan fonksiyon
     createThreeLayer = (id: string) => {
         let threeLayer = new ThreeLayer(id, {
             forceRenderOnMoving: true,
@@ -75,6 +114,7 @@ export default class LayerController {
         }
     }
 
+    // çizim yapmak için kullanılan fonksiyon
     updateThreeLayer = async (items: any, layerId: string) => {
         if(typeof this.items[layerId] === "undefined") {
             await this.sleep(500);
@@ -127,11 +167,13 @@ export default class LayerController {
         });
     }
 
+    // rastgele renk seçen fonksiyon
     randomColor = (): string => {
         let colors = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "a", "b", "c", "d", "e", "f"];
         return parseInt(colors[Math.floor(Math.random() * colors.length)] + colors[Math.floor(Math.random() * colors.length)] + colors[Math.floor(Math.random() * colors.length)] + colors[Math.floor(Math.random() * colors.length)] + colors[Math.floor(Math.random() * colors.length)] + colors[Math.floor(Math.random() * colors.length)], 16);
     }
 
+    // paletten rastgele renk seçen fonksiyon (Config.json içerisinde)
     randomColorFromPalette = (): string => {
         let colors = Object.keys(Config.colorPalette);
         let c = Config.colorPalette[colors[Math.floor(Math.random() * colors.length)]];
@@ -140,6 +182,7 @@ export default class LayerController {
         return parseInt(t, 16);
     }
 
+    // duvar oluşturmak için gerekli geometriyi oluşturan fonksiyon
     lineString = (points, lineWidth, height) => {
         let pts = [];
         points.forEach((p: any) => pts.push([p.x, p.y]));
@@ -152,6 +195,7 @@ export default class LayerController {
         return res;
     }
 
+    // duvar oluşturan fonksiyon
     generateWall = (height, points, p, lineWidth) => {
         let {indices, position, uv, normal} = this.lineString(points, lineWidth, height);
 

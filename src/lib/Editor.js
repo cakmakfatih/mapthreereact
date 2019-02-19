@@ -49,7 +49,7 @@ export default class Editor extends Component<{}, EditorState> {
         return (
             <div className="level-selector-pane">
                 {
-                    layers.map((l, key) => !isNaN(l) ? <div key={key} className={
+                    layers.sort((a, b) => parseInt(a, 10) > parseInt(b, 10) ? -1 : 1).map((l, key) => !isNaN(l) ? <div key={key} className={
                         activeLayer === l ? "active" : ""
                     } onClick={() => {
                         this.builder.showLayer(l);

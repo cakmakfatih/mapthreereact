@@ -30,7 +30,7 @@ export default class LayerController {
         this.vectorLayers = {};
         this.items = {};
         this.materials = {};
-        this.wallMat = new THREE.MeshLambertMaterial({color: parseInt(Config.colorPalette.grey[7], 16) });
+        this.wallMat = new THREE.MeshLambertMaterial({ color: parseInt(Config.colorPalette.grey[7], 16) });
 
         // zoom performans için sınırlı
         this.map.setMinZoom(18.0);
@@ -54,14 +54,27 @@ export default class LayerController {
         }
         Object.keys(this.items).forEach((i: any) => {
             if(i === layerId) {
-                this.vectorLayers[`${i}V`].show();
-                this.items[i].threeLayer.show();
+                //this.vectorLayers[`${i}V`].show();
+                this.map.getLayer(i).show();
                 this.viewLoop(this.items[i].renderer, i);
             } else {
-                this.vectorLayers[`${i}V`].hide();
-                if(i !== "BASE_LAYER")
-                    this.items[i].threeLayer.hide();
+                if(i !== "BASE_LAYER") {
+                    //this.vectorLayers[`${i}V`].hide();
+                    this.map.getLayer(i).hide();
+                }
             }
+        });
+    }
+
+    addOpenings = async (data: any) => {
+        if(typeof this.items["0"] === "undefined") {
+            await this.sleep(500);
+            return this.addOpenings(data);
+        }
+        data.forEach((i: any) => {
+            i.objects.forEach((o: any) => {
+                
+            });
         });
     }
 
@@ -77,7 +90,7 @@ export default class LayerController {
     // marker'ları eklemeye yarayan fonksiyon
     addMarkers = (m: any) => {
         m.objects.forEach((i: any) => {
-            let key = this.levels[i.properties.LEVEL_ID].properties.ORDINAL.toString();
+            let key = this.levels[i.feature.properties.LEVEL_ID].properties.ORDINAL.toString();
             i.marker.addTo(this.map.getLayer(`${key}V`));
         });
     }
@@ -102,15 +115,14 @@ export default class LayerController {
             scene.add(light);
 
             t.items[id] = {
-                threeLayer,
                 gl,
                 scene,
                 camera,
                 renderer: this._renderer
             };
-
             if(id === "BASE_LAYER")
-                t.viewLoop(this._renderer, id);
+            t.viewLoop(this._renderer, id);
+            
         }
     }
 
@@ -148,7 +160,7 @@ export default class LayerController {
                 let linePosZ = mesh.geometry.parameters.options.depth;
 
                 if(f.name !== "Venue") {
-                    let wall = this.generateWall(linePosZ, this.t.toShape(o.geometry).getPoints(), mesh.position, linePosZ/2);
+                    let wall = this.generateWall(linePosZ, this.t.toShape(o.geometry).getPoints(), mesh.position, linePosZ/2, this.wallMat);
 
                     if (Array.isArray(mesh)) {
                         scene.add.apply(scene, wall);
@@ -196,16 +208,15 @@ export default class LayerController {
     }
 
     // duvar oluşturan fonksiyon
-    generateWall = (height, points, p, lineWidth) => {
+    generateWall = (height, points, p, lineWidth, mat) => {
         let {indices, position, uv, normal} = this.lineString(points, lineWidth, height);
-
         const geometry = new THREE.BufferGeometry();
 
         geometry.addAttribute('position', new THREE.Float32BufferAttribute(position, 3));
         geometry.addAttribute('normal', new THREE.Float32BufferAttribute(normal, 3));
         geometry.setIndex(new THREE.Uint16BufferAttribute(indices, 1));
 
-        let mesh = new THREE.Mesh(geometry, this.wallMat);
+        let mesh = new THREE.Mesh(geometry, mat);
         mesh.position.set(p.x, p.y, p.z);
 
         return mesh;

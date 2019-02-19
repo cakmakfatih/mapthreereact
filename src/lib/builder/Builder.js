@@ -7,7 +7,20 @@ import Units from './../../Archive/Units.json';
 import Fixtures from './../../Archive/Fixtures.json';
 import Levels from './../../Archive/Levels.json';
 import Points from './../../Archive/Points.json';
+import Openings from './../../Archive/Openings.json';
 import LayerController from './LayerController';
+
+Array.prototype.compareToArray = function(arr) {
+    if(this.length !== arr.length)
+        return false;
+    for(var i = this.length; i--;) {
+        if(this[i] !== arr[i])
+            return false;
+    }
+
+    return true;
+}
+
 
 export default class Builder {
     // UI üzerinden gelecek ya da oluşturulacak değerlerin atandığı değişken, project
@@ -93,6 +106,7 @@ export default class Builder {
 
         // henüz buildings render edilmiyor, en son dış görünüm için ekstra bir layer'da gösterilecek
         data.buildings = this.configureFeature(Buildings, "Buildings");
+        data.openings = this.configureFeature(Openings, "Openings");
 
         // diğer tüm objelerin bulunacağı yer -> data
         data.data = [];
@@ -110,11 +124,12 @@ export default class Builder {
         // layerController'da, gerekli 2d ve 3d layerları oluşturuyor
         data.layers.forEach((l: string) => {
             this.layerController.createThreeLayer(l);
-            this.layerController.createVectorLayer(l);
         });
 
         // marker'ları ekliyor
-        this.layerController.addMarkers(data.markers);
+        //this.layerController.addMarkers(data.markers);
+
+        this.layerController.addOpenings([data.openings]);
 
         // aktif layer'ı ve venue'yü görünür yapıp gerisini görünmez yapıyor
         this.showLayer(this.activeLayer);
@@ -154,18 +169,29 @@ export default class Builder {
                         }
                     }),
                     group: feature.properties.CATEGORY || null,
-                    properties: {...feature.properties, type: "Polygon"}
+                    properties: {...feature.properties, type: "Polygon"},
+                    feature: feature
                 };
                 break;
             case "Polygon":
                 f = {
-                    ...feature,
-                    geometry: maptalks.GeoJSON.toGeometry(feature)
+                    feature: feature,
+                    geometry: maptalks.GeoJSON.toGeometry(feature),
+                    properties: {...feature.properties, type: "Polygon"},
+                    group: feature.properties.CATEGORY || null,
+                };
+                break;
+            case "LineString":
+                f = {
+                    feature: feature,
+                    geometry: maptalks.GeoJSON.toGeometry(feature),
+                    group: feature.properties.CATEGORY || null,
+                    properties: {...feature.properties, type: "Polygon"},
                 };
                 break;
             case "Point":
                 f = {
-                    ...feature,
+                    feature: feature,
                     marker: new maptalks.Marker(
                         feature.geometry.coordinates,
                         {
@@ -229,10 +255,8 @@ export default class Builder {
                     res.objects.push(this.calculateGeometry(singleFeature));
                 });
                 break;
-            case "Feature":
-                res.objects.push(this.calculateGeometry(f));
-                break;
             default:
+                res.objects.push(this.calculateGeometry(f));
                 break;
         }
 
@@ -350,7 +374,10 @@ export default class Builder {
                     object: intersects[0].object,
                     editted: false
                 };
-                intersects[0].object.material.color = new THREE.Color(0xc2185b);
+                let material = new THREE.MeshPhongMaterial({
+                    color: 0xc2185b
+                });
+                intersects[0].object.material = material;
             }
         }
     }
